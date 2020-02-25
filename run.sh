@@ -19,7 +19,6 @@ set -e
 mfccdir=`pwd`/mfcc
 vaddir=`pwd`/mfcc
 
-#######################################
 # 设置语料存放路径和语料URL
 data=/dataset/cv_corpus
 # 指示系统的执行阶段
@@ -40,7 +39,15 @@ if [ $stage -le 0 ]; then
 	local/data_prep.pl $data/ga_IE $part data/ga_IE/$part
   done
   
+  # 使用修改之后的combine_data.sh，将之前准备的数据整合到一起
+  for part in train dev test; do
+    local/combine_data.sh data/lre/$part \
+      data/zh_CN/$part data/tr/$part data/it/$part data/ru/$part data/ga_IE/$part
+    utils/validate_data_dir.sh --no-text --no-feats data/lre/$part
+    utils/fix_data_dir.sh data/lre/$part
+  done
+  
 fi
 
-#######################################
+
 
