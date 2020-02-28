@@ -37,8 +37,8 @@ while(<META>) {
   $uttId =~ s/\.mp3//g;
   # No speaker information is provided, so we treat each utterance as coming from a different speaker
   $spkr = $uttId;
-
-  print WAV "$uttId"," sox $db_base/clips/$path -t wav -r 16k -b 16 -e signed |\n";
+  ## sox指令要跟例程中的一致，最后的 '- |' 不能缺少
+  print WAV "$uttId"," sox $db_base/clips/$path -t wav -r 16k -b 16 -e signed - |\n";
   print UTT2SPK "$uttId"," $spkr","\n";
   print UTT2LANG "$uttId"," $lang","\n";
 }
