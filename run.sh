@@ -17,7 +17,8 @@
 set -e
 
 mfccdir=`pwd`/mfcc
-vaddir=`pwd`/mfcc
+# 暂时不进行VAD
+# vaddir=`pwd`/mfcc
 
 # 设置语料存放路径和语料URL
 data=/dataset/cv_corpus
@@ -46,7 +47,16 @@ if [ $stage -le 0 ]; then
     utils/validate_data_dir.sh --no-text --no-feats data/lre/$part
     utils/fix_data_dir.sh data/lre/$part
   done
-  
+fi
+
+if [ $stage -le 1 ]; then
+  # 计算MFCC
+  for part in train dev test; do
+    # --cmd 指示：how to run jobs, run.pl或queue.pl
+	# --nj 指示：number of parallel jobs, 默认为4
+	# 三个目录分别为：数据目录，log目录，mfcc生成目录
+    steps/make_mfcc.sh --cmd "$train_cmd" --nj 20 data/lre/$part exp/make_mfcc/$part $mfccdir
+  done
 fi
 
 
