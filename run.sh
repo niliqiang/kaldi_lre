@@ -50,14 +50,29 @@ if [ $stage -le 0 ]; then
 fi
 
 if [ $stage -le 1 ]; then
-  # 计算MFCC
+  # 计算MFCC、进行端点检测（VAD）
   for part in train dev test; do
     # --cmd 指示：how to run jobs, run.pl或queue.pl
 	# --nj 指示：number of parallel jobs, 默认为4
 	# 三个目录分别为：数据目录，log目录，mfcc生成目录
     steps/make_mfcc.sh --cmd "$train_cmd" --nj 20 data/lre/$part exp/make_mfcc/$part $mfccdir
+	utils/fix_data_dir.sh data/lre/$part
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 20 data/lre/$part exp/make_vad/$part $vaddir
+    utils/fix_data_dir.sh data/lre/$part
   done
 fi
 
+if [ $stage -le 2 ]; then
+  # 训练UBM
+  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个256的混合高斯
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 20 data/lre/train 256 exp/diag_ubm
+  # 用先训练的diag_ubm来训练完整的UBM
+  sid/train_full_ubm.sh --cmd "$train_cmd" --nj 20 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
+fi
+
+if [ $stage -le 3 ]; then
+  # 训练i-vector提取器
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --ivector-dim 600 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
+fi
 
 
