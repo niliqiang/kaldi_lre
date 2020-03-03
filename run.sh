@@ -25,6 +25,7 @@ data=/dataset/cv_corpus
 # 指示系统的执行阶段
 stage=0
 
+# :<<!
 if [ $stage -le 0 ]; then
   # 数据准备（已验证的训练集，开发集，测试集）
   for part in train dev test; do
@@ -61,7 +62,8 @@ if [ $stage -le 1 ]; then
     utils/fix_data_dir.sh data/lre/$part
   done
 fi
-
+# !
+# :<<!
 if [ $stage -le 2 ]; then
   # 训练UBM
   # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个256的混合高斯
@@ -71,8 +73,9 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  # 训练i-vector提取器
-  sid/train_ivector_extractor.sh --cmd "$train_cmd" --ivector-dim 600 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
+  # 训练i-vector提取器，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 2 --num_threads 2 --num_processes 2 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
 fi
+# !
 
 
