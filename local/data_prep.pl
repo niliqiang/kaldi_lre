@@ -23,7 +23,7 @@ mkdir "data/$lang" unless -d "data/$lang";
 mkdir $out_dir unless -d $out_dir;
 
 #打开/创建相应文件
-open(META, "<", "$db_base/$dataset.tsv") or die "cannot open dataset TSV file";
+open(META, "<", "$db_base/$dataset.tsv") or die "cannot open dataset TSV file $db_base/$dataset.tsv";
 open(UTT2LANG, ">", "$out_dir/utt2lang") or die "Could not open the output file $out_dir/utt2lang";
 open(UTT2SPK, ">", "$out_dir/utt2spk") or die "Could not open the output file $out_dir/utt2spk";
 open(WAV, ">", "$out_dir/wav.scp") or die "Could not open the output file $out_dir/wav.scp";
