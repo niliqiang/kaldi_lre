@@ -37,9 +37,11 @@ while(<META>) {
   $uttId =~ s/\.mp3//g;
   # No speaker information is provided, so we treat each utterance as coming from a different speaker
   $spkr = $uttId;
-  ## sox指令要跟例程中的一致，最后的 '- |' 不能缺少
+  # sox指令要跟例程中的一致，最后的 '- |' 不能缺少
   print WAV "$uttId"," sox $db_base/clips/$path -t wav -r 16k -b 16 -e signed - |\n";
-  print UTT2SPK "$uttId"," $spkr","\n";
+  # 由于现在的程序主要是根据sre修改而来，为了更快的搭建语种识别系统，将语种信息存到utt2spk文件中，把语种当成speaker训练，待对系统有了更深刻的理解再修改
+  # print UTT2SPK "$uttId"," $spkr","\n";
+  print UTT2SPK "$uttId"," $lang","\n";
   print UTT2LANG "$uttId"," $lang","\n";
 }
 close(META) || die;

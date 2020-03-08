@@ -65,7 +65,7 @@ fi
 # !
 # :<<!
 if [ $stage -le 2 ]; then
-  # 训练UBM
+  # 使用训练集训练UBM
   # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个256的混合高斯
   sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 20 data/lre/train 256 exp/diag_ubm
   # 用先训练的diag_ubm来训练完整的UBM
@@ -73,9 +73,17 @@ if [ $stage -le 2 ]; then
 fi
 
 if [ $stage -le 3 ]; then
-  # 训练i-vector提取器，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes
-  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 2 --num_threads 2 --num_processes 2 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
+  # 使用训练集训练i-vector提取器，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes（16G内存需要都降到2）
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 20 --num_threads 2 --num_processes 2 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
 fi
 # !
+
+if [ $stage -le 4 ]; then
+  # i-vector提取
+  for part in train dev test; do
+    # 三个目录分别为：i-vector提取器，数据目录，ivectors生成目录
+    sid/extract_ivectors.sh --cmd "$train_cmd" --nj 20 exp/extractor data/lre/$part exp/ivectors_$part
+  done
+fi
 
 
