@@ -21,7 +21,13 @@ mfccdir=`pwd`/mfcc
 # vaddir=`pwd`/mfcc
 
 # 设置语料存放路径和语料URL
-data=/dataset/cv_corpus
+# Ubuntu双系统数据集路径
+#data=/dataset/cv_corpus
+# 工作站（10.112.212.188）数据集路径
+#data=/mnt/HD1/niliqiang/cv_corpus 
+# 服务器（10.103.238.161）数据集路径
+data=/mnt/DataDrive172/niliqiang/cv_corpus 
+
 # 指示系统的执行阶段
 stage=0
 
