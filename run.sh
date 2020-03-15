@@ -17,8 +17,7 @@
 set -e
 
 mfccdir=`pwd`/mfcc
-# 暂时不进行VAD
-# vaddir=`pwd`/mfcc
+vaddir=`pwd`/mfcc
 
 # 设置语料存放路径和语料URL
 # Ubuntu双系统数据集路径
