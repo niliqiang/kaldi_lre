@@ -42,7 +42,7 @@ if [ $stage -le 0 ]; then
 	local/data_prep.pl $data/it $part data/it/$part
 	# 俄语(ru)
 	local/data_prep.pl $data/ru $part data/ru/$part
-	# 爱尔兰语(ru)
+	# 爱尔兰语(ga_IE)
 	local/data_prep.pl $data/ga_IE $part data/ga_IE/$part
   done
   
@@ -92,12 +92,20 @@ if [ $stage -le 4 ]; then
   done
 fi
 
-# 如果基于说话人识别的思路，需要生成trials文件
 if [ $stage -le 5 ]; then
-  # trials文件生成，由于数据库中没有直接的数据，需要自己生成
+  # 如果基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
+  lid/run_logistic_regression.sh --prior-scale 0.70 \
+  --conf conf/logistic-regression.conf
+
+fi
+:<<!
+if [ $stage -le 5 ]; then
+  # 如果基于说话人识别的思路，需要生成trials文件
+  # 由于数据库中没有直接的数据来生成trials文件，需要自己组合生成
   # 这个文件是说话人识别特有的，简单来说，就是告诉系统，哪段语音是说话人X说的，哪段语音不是。
 
 fi
+!
 
 
 
