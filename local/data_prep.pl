@@ -1,8 +1,8 @@
 #!/usr/bin/perl
 #
 # Copyright 2017   Ewald Enzinger
+#			2020	niliqiang
 # Apache 2.0
-# modified by niliqiang
 #
 # Usage: data_prep.pl /export/data/cv_corpus/zh_CN train out_dir
 

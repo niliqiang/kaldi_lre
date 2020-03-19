@@ -1,8 +1,8 @@
 #!/bin/bash
 # Copyright  2014-2015  David Snyder
 #                       Daniel Povey
+#				2020	niliqiang
 # Apache 2.0.
-# modified by niliqiang
 #
 # This script runs the NIST 2007 General Language Recognition Closed-Set
 # evaluation.

@@ -1,5 +1,6 @@
 #!/bin/bash
 # Copyright  2014   David Snyder,  Daniel Povey
+#			2020	niliqiang
 # Apache 2.0.
 #
 # This script trains a logistic regression model on top of
@@ -11,10 +12,10 @@
 set -e
 
 train_dir=exp/ivectors_train
-test_dir=exp/ivectors_lre07
+test_dir=exp/ivectors_test
 model_dir=exp/ivectors_train
-train_utt2lang=data/train_lr/utt2lang
-test_utt2lang=data/lre07/utt2lang
+train_utt2lang=data/lre/train/utt2lang
+test_utt2lang=data/lre/test/utt2lang
 prior_scale=1.0
 apply_log=true # If true, the output of the binary
                # logistitic-regression-eval are log-posteriors.
