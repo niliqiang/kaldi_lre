@@ -96,8 +96,10 @@ if [ $stage -le 5 ]; then
   # 如果基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
   lid/run_logistic_regression.sh --prior-scale 0.70 \
   --conf conf/logistic-regression.conf
-
+  # Train error-rate: %ER 0.03
+  # Test error-rate: %ER 36.63
 fi
+
 :<<!
 if [ $stage -le 5 ]; then
   # 如果基于说话人识别的思路，需要生成trials文件
