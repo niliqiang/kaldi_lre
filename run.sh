@@ -28,7 +28,7 @@ vaddir=`pwd`/mfcc
 data=/mnt/DataDrive172/niliqiang/cv_corpus 
 
 # 指示系统的执行阶段
-stage=0
+stage=6
 
 # :<<!
 if [ $stage -le 0 ]; then
@@ -93,11 +93,15 @@ if [ $stage -le 4 ]; then
 fi
 
 if [ $stage -le 5 ]; then
-  # 如果基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
-  lid/run_logistic_regression.sh --prior-scale 0.70 \
-  --conf conf/logistic-regression.conf
+  # 基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
+  lid/run_logistic_regression.sh --prior-scale 0.70 --conf conf/logistic-regression.conf
   # Train error-rate: %ER 0.03
   # Test error-rate: %ER 36.63
+fi
+
+if [$stage -le 6 ]; then
+  # 基于语种识别lre07的思路，计算ER和C_avg
+  local/lre07_cv_eval.sh exp/ivectors_test local/general_lr_closed_set_langs.txt
 fi
 
 :<<!
