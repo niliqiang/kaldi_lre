@@ -75,7 +75,7 @@ while($line = <POSTS>) {
   } else {
     $lang = $actual_lang;
   }
-  if ($lang =~ /(arabic|bengali|farsi|german|japanese|korean|russian|tamil|thai|vietnamese|chinese|english|hindustani|spanish)/i) {
+  if ($lang =~ /(zh_CN|tr|it|ru|ga_IE)/i) {
     if (index($actual_lang, $max_lang) != -1 || $actual_lang eq $max_lang) {
       print TARGETS "general_lr $lang closed_set $utt t $target_prob "
             ."$actual_lang\n";
@@ -91,7 +91,7 @@ while($line = <POSTS>) {
       || $actual_lang eq $nontarget_lang);
 
     # if the nontarget lang is most probable
-    if ($nontarget_lang =~ /(arabic|bengali|farsi|german|japanese|korean|russian|tamil|thai|vietnamese|chinese|english|hindustani|spanish)/i) {
+    if ($nontarget_lang =~ /(zh_CN|tr|it|ru|ga_IE)/i) {
       $prob = exp($toks[$i]);
       if (index($max_lang, $nontarget_lang) != -1 
         || $max_lang eq $nontarget_lang) {

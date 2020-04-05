@@ -21,12 +21,12 @@ languages_file=$2
 mkdir -p local/lre07_cv_eval/lre07_cv_results
 lre07_cv_dir=local/lre07_cv_eval/lre07_cv_results
 
-local/lre07_targets.pl $posterior_dir/posteriors data/lre/test/utt2lang \
+local/lre07_cv_targets.pl $posterior_dir/posteriors data/lre/test/utt2lang \
   $languages_file $lre07_cv_dir/targets \
   $lre07_cv_dir/nontargets>/dev/null
 
 # Create the the score (eg, targets.scr) file.
-local/score_lre07.v01d.pl -t $lre07_cv_dir/targets -n $lre07_cv_dir/nontargets
+local/score_lre07_cv.v01d.pl -t $lre07_cv_dir/targets -n $lre07_cv_dir/nontargets
 
 # Compute the posterior probabilities for avg duration, as well as
 # the target and nontarget files.

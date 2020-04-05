@@ -38,6 +38,7 @@ my $USAGE = "\n$0 [options] -t <tfile> -n <nfile>\n".
     "                   min | wu | english | american | indian | hindustani | hindi | urdu |\n".
     "                   spanish | caribbean | noncaribbean | farsi | german | japanese | korean |\n".
     "                   russia | tamil | thai | vietnamese)\n".
+    "                   my target language (zh_CN | tr | it | ru | ga_IE)\n".
     "         <cond>: the nontarget language condition (closed_set | open_set)\n".
     "         <segid>: the test segment file name\n".
     "         <decision>: the decision (t | f)\n".
@@ -163,7 +164,7 @@ sub read_trials {
 		die ("FATAL ERROR: '$fields[0]' is not a supported test in line '$line'\n");
 	    }
 	    
-	    if ($fields[1] !~ /^(arabic|bengali|chinese|cantonese|mandarin|mainland|taiwan|min|wu|english|american|indian|hindustani|hindi|urdu|spanish|caribbean|noncaribbean|farsi|german|japanese|korean|russian|tamil|thai|vietnamese)$/i) {
+	    if ($fields[1] !~ /^(zh_CN|tr|it|ru|ga_IE)$/i) {
 		die ("FATAL ERROR: '$fields[1]' is not a supported target language in line '$line'\n");
 	    }
 	    
@@ -584,7 +585,7 @@ sub is_out_of_set_language {
     my ($lng, $test) = @_;
 
     if ( $test eq "general_lr" ) {
-	if ($lng =~ /(arabic|bengali|farsi|german|japanese|korean|russian|tamil|thai|vietnamese|chinese|english|hindustani|spanish)/i) {
+	if ($lng =~ /(zh_CN|tr|it|ru|ga_IE)/i) {
 	    return 0;
 	}
 
