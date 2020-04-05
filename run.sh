@@ -99,7 +99,7 @@ if [ $stage -le 5 ]; then
   # Test error-rate: %ER 36.63
 fi
 
-if [$stage -le 6 ]; then
+if [ $stage -le 6 ]; then
   # 基于语种识别lre07的思路，计算ER和C_avg
   local/lre07_cv_eval.sh exp/ivectors_test local/general_lr_closed_set_langs.txt
 fi
