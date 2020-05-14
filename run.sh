@@ -27,8 +27,11 @@ vaddir=`pwd`/mfcc
 # 服务器（10.103.238.161）数据集路径
 data=/mnt/DataDrive172/niliqiang/cv_corpus 
 
+# 设置trials文件路径
+trials=data/lre/test/trials
+
 # 指示系统的执行阶段
-stage=6
+stage=5
 
 # :<<!
 if [ $stage -le 0 ]; then
@@ -92,6 +95,8 @@ if [ $stage -le 4 ]; then
   done
 fi
 
+:<<!
+# 基于语种识别lre07的思路
 if [ $stage -le 5 ]; then
   # 基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
   lid/run_logistic_regression.sh --prior-scale 0.70 --conf conf/logistic-regression.conf
@@ -106,15 +111,21 @@ if [ $stage -le 6 ]; then
   #         ER (%):  36.63
   #      C_avg (%):  34.07
 fi
+!
 
-:<<!
+# :<<!
+# 基于说话人识别的思路
 if [ $stage -le 5 ]; then
   # 如果基于说话人识别的思路，需要生成trials文件
   # 由于数据库中没有直接的数据来生成trials文件，需要自己组合生成
   # 这个文件是说话人识别特有的，简单来说，就是告诉系统，哪段语音是说话人X说的，哪段语音不是。
-
+  lid/produce_trials.py data/lre/test/utt2lang $trials
+  # 余弦距离打分
+  local/cosine_scoring.sh data/lre/train data/lre/test \
+  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_256
 fi
-!
+
+# !
 
 
 
