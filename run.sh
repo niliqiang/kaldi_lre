@@ -119,7 +119,7 @@ if [ $stage -le 5 ]; then
   # 如果基于说话人识别的思路，需要生成trials文件
   # 由于数据库中没有直接的数据来生成trials文件，需要自己组合生成
   # 这个文件是说话人识别特有的，简单来说，就是告诉系统，哪段语音是说话人X说的，哪段语音不是。
-  lid/produce_trials.py data/lre/test/utt2lang $trials
+  # lid/produce_trials.py data/lre/test/utt2lang $trials
   # 余弦距离打分
   local/cosine_scoring.sh data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_256
