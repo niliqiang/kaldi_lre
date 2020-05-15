@@ -102,9 +102,7 @@ if [ $stage -le 5 ]; then
   lid/run_logistic_regression.sh --prior-scale 0.70 --conf conf/logistic-regression.conf
   # Train error-rate: %ER 0.03
   # Test error-rate: %ER 36.63
-fi
 
-if [ $stage -le 6 ]; then
   # 基于语种识别lre07的思路，计算ER和C_avg
   local/lre07_cv_eval.sh exp/ivectors_test local/general_lr_closed_set_langs.txt
   # Duration (sec):    avg
@@ -123,9 +121,10 @@ if [ $stage -le 5 ]; then
   # 余弦距离打分
   local/cosine_scoring.sh data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_256
+  # 计算EER，其中'-'表示从标准输入中读一次数据
+  awk '{print $3}' exp/scores_cosine_gmm_256/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  # Equal error rate is 23.3611%, at threshold 5.10275
 fi
-
 # !
-
 
 
