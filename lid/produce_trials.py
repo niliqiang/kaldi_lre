@@ -28,8 +28,8 @@ for line in open(fnutt):
   utt, spk = utt2spk.split(' ')
   for target in dictutt:
     if target == spk:
-      trial = utt + ' ' + target + ' target'
+      trial = target + ' ' + utt + ' target'
     else:
-      trial = utt + ' ' + target + ' nontarget'
+      trial = target + ' ' + utt + ' nontarget'
     ftrial.write(trial + '\n')
 ftrial.close()
