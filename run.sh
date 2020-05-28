@@ -31,7 +31,7 @@ data=/mnt/DataDrive172/niliqiang/cv_corpus
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
-stage=5
+stage=6
 
 # :<<!
 if [ $stage -le 0 ]; then
@@ -130,7 +130,9 @@ if [ $stage -le 6 ]; then
   # LDA
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_256
-  
+  # 计算EER，其中'-'表示从标准输入中读一次数据
+  awk '{print $3}' exp/scores_lda_gmm_256/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  # Equal error rate is 22.1683%, at threshold 5.84638
 fi
 # !
 
