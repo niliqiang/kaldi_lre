@@ -39,6 +39,11 @@ else
     $plda_ivec_dir/plda || exit 1;
 fi
 
+# Compute i-vector mean.
+run.pl ${plda_ivec_dir}/log/compute_mean.log \
+  ivector-normalize-length scp:${plda_ivec_dir}/ivector.scp \
+  ark:- \| ivector-mean ark:- ${plda_ivec_dir}/mean.vec || exit 1;
+
 mkdir -p $scores_dir/log
 
 run.pl $scores_dir/log/plda_scoring.log \
@@ -46,6 +51,7 @@ run.pl $scores_dir/log/plda_scoring.log \
     --simple-length-normalization=$simple_length_norm \
     --num-utts=ark:${enroll_ivec_dir}/num_utts.ark \
     "ivector-copy-plda --smoothing=0.0 ${plda_ivec_dir}/plda - |" \
-    ark:${enroll_ivec_dir}/spk_ivector.ark \
-    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- |" \
+    "ark:ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec scp:${enroll_ivec_dir}/spk_ivector.scp ark:- | ivector-normalize-length ark:- ark:- |" \
+    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- | ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     "cat '$trials' | cut -d\  --fields=1,2 |" $scores_dir/plda_scores || exit 1;
+
