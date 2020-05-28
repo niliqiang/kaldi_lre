@@ -125,6 +125,13 @@ if [ $stage -le 5 ]; then
   awk '{print $3}' exp/scores_cosine_gmm_256/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 23.3611%, at threshold 5.10275
 fi
+
+if [ $stage -le 6 ]; then
+  # LDA
+  local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_256
+  
+fi
 # !
 
 
