@@ -46,6 +46,6 @@ run.pl $scores_dir/log/plda_scoring.log \
     --simple-length-normalization=$simple_length_norm \
     --num-utts=ark:${enroll_ivec_dir}/num_utts.ark \
     "ivector-copy-plda --smoothing=0.0 ${plda_ivec_dir}/plda - |" \
-    "ark:ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec scp:${enroll_ivec_dir}/spk_ivector.scp ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- | ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    ark:${enroll_ivec_dir}/spk_ivector.ark \
+    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- |" \
     "cat '$trials' | cut -d\  --fields=1,2 |" $scores_dir/plda_scores || exit 1;
