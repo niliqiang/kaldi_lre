@@ -31,7 +31,7 @@ data=/mnt/DataDrive172/niliqiang/cv_corpus
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
-stage=7
+stage=0
 
 # :<<!
 if [ $stage -le 0 ]; then
@@ -64,7 +64,9 @@ if [ $stage -le 1 ]; then
     # --cmd 指示：how to run jobs, run.pl或queue.pl
 	# --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
 	# 三个目录分别为：数据目录，log目录，mfcc生成目录
-    steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir
+    # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir
+	# make MFCC plus pitch features
+	steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
 	utils/fix_data_dir.sh data/lre/$part
     steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part $vaddir
     utils/fix_data_dir.sh data/lre/$part
@@ -141,6 +143,8 @@ if [ $stage -le 7 ]; then
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_256
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_plda_gmm_256/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  # Without i-vector mean compute: Equal error rate is 29.3057%, at threshold -170.614
+  # With i-vector mean compute: Equal error rate is 30.2269%, at threshold -206.967
 fi
 # !
 
