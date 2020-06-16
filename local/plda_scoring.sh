@@ -5,6 +5,8 @@
 # This script trains PLDA models and does scoring.
 
 use_existing_models=false
+lda_dim=150
+covar_factor=0.1
 simple_length_norm=false # If true, replace the default length normalization
                          # performed in PLDA  by an alternative that
                          # normalizes the length of the iVectors to be equal
@@ -33,9 +35,16 @@ if [ "$use_existing_models" == "true" ]; then
     [ ! -f $f ] && echo "No such file $f" && exit 1;
   done
 else
+  # Use LDA to decrease the dimensionality prior to PLDA
+  run.pl $plda_ivec_dir/log/lda.log \
+    ivector-compute-lda --total-covariance-factor=$covar_factor --dim=$lda_dim \
+    "ark:ivector-normalize-length scp:${plda_ivec_dir}/ivector.scp ark:- |" \
+    ark:$plda_data_dir/utt2spk ${plda_ivec_dir}/transform.mat || exit 1;
+
+  # Train the PLDA model.
   run.pl $plda_ivec_dir/log/plda.log \
     ivector-compute-plda ark:$plda_data_dir/spk2utt \
-    "ark:ivector-normalize-length scp:${plda_ivec_dir}/ivector.scp  ark:- |" \
+    "ark:ivector-normalize-length scp:${plda_ivec_dir}/ivector.scp  ark:- | transform-vec ${plda_ivec_dir}/transform.mat ark:- ark:- |" \
     $plda_ivec_dir/plda || exit 1;
 fi
 
@@ -51,7 +60,7 @@ run.pl $scores_dir/log/plda_scoring.log \
     --simple-length-normalization=$simple_length_norm \
     --num-utts=ark:${enroll_ivec_dir}/num_utts.ark \
     "ivector-copy-plda --smoothing=0.0 ${plda_ivec_dir}/plda - |" \
-    "ark:ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec scp:${enroll_ivec_dir}/spk_ivector.scp ark:- | ivector-normalize-length ark:- ark:- |" \
-    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- | ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    "ark:ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec scp:${enroll_ivec_dir}/spk_ivector.scp ark:- | transform-vec ${plda_ivec_dir}/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
+    "ark:ivector-normalize-length scp:${test_ivec_dir}/ivector.scp ark:- | ivector-subtract-global-mean ${plda_ivec_dir}/mean.vec ark:- ark:- | transform-vec ${plda_ivec_dir}/transform.mat ark:- ark:- | ivector-normalize-length ark:- ark:- |" \
     "cat '$trials' | cut -d\  --fields=1,2 |" $scores_dir/plda_scores || exit 1;
 
