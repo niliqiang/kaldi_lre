@@ -76,8 +76,8 @@ fi
 # :<<!
 if [ $stage -le 2 ]; then
   # 使用训练集训练UBM
-  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个256的混合高斯
-  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 256 exp/diag_ubm
+  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个512的混合高斯
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 512 exp/diag_ubm
   # 用先训练的diag_ubm来训练完整的UBM
   sid/train_full_ubm.sh --cmd "$train_cmd" --nj 5 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
 fi
@@ -85,7 +85,7 @@ fi
 if [ $stage -le 3 ]; then
   # 使用训练集训练i-vector提取器，实际运行的线程数是nj*num_processes*num_threads，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes（16G内存需要都降到2）
   # 还需要注意的是数据分块数为nj*num_processes，这个数据不能超过说话人数（语种数）
-  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 5 --num_threads 2 --num_processes 1 --num-iters 5 exp/full_ubm/final.ubm data/lre/train exp/extractor
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 5 --num_threads 2 --num_processes 1 --num-iters 8 exp/full_ubm/final.ubm data/lre/train exp/extractor
 fi
 # !
 
@@ -122,9 +122,9 @@ if [ $stage -le 5 ]; then
   lid/produce_trials.py data/lre/test/utt2lang $trials
   # 余弦距离打分
   local/cosine_scoring.sh data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_256
+  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_cosine_gmm_256/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_cosine_gmm_512/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 23.3611%, at threshold 5.10275
   echo '\n'
 fi
@@ -132,9 +132,9 @@ fi
 if [ $stage -le 6 ]; then
   # LDA
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_256
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_lda_gmm_256/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_lda_gmm_512/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 22.1683%, at threshold 5.84638
   echo '\n'
 fi
@@ -142,9 +142,9 @@ fi
 if [ $stage -le 7 ]; then
   # PLDA
   local/plda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_256
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_plda_gmm_256/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_plda_gmm_512/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Without i-vector mean compute: Equal error rate is 29.3057%, at threshold -170.614
   # With i-vector mean compute: Equal error rate is 30.2269%, at threshold -206.967
 fi
