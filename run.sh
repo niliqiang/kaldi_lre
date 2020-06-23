@@ -25,7 +25,8 @@ vaddir=`pwd`/mfcc
 # 工作站（10.112.212.188）数据集路径
 #data=/mnt/HD1/niliqiang/cv_corpus 
 # 服务器（10.103.238.161）数据集路径
-data=/mnt/DataDrive172/niliqiang/cv_corpus 
+data=/mnt/DataDrive172/niliqiang/cv_corpus
+noise_data=/mnt/DataDrive172/niliqiang/musan
 
 # 设置trials文件路径
 trials=data/lre/test/trials
@@ -89,17 +90,83 @@ if [ $stage -le 3 ]; then
 fi
 # !
 
+# 数据增强
+# 加混响：混响包含了real和simulated
+# 加性噪声：加性包含人声babble，音乐背景声和真实噪声
 if [ $stage -le 4 ]; then
+  utils/data/get_utt2num_frames.sh --nj 5 --cmd "$train_cmd" data/lre/train
+  frame_shift=0.01
+  awk -v frame_shift=$frame_shift '{print $1, $2*frame_shift;}' data/lre/train/utt2num_frames > data/lre/train/reco2dur
+  
+  # Make a version with reverberated speech
+  rvb_opts=()
+  rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/smallroom/rir_list")
+  rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/mediumroom/rir_list")
+
+  # Make a reverberated version of the lre.train list.  Note that we don't add any
+  # additive noise here.
+  steps/data/reverberate_data_dir.py \
+    "${rvb_opts[@]}" \
+    --speech-rvb-probability 1 \
+    --pointsource-noise-addition-probability 0 \
+    --isotropic-noise-addition-probability 0 \
+    --num-replications 1 \
+    --source-sampling-rate 8000 \
+    data/lre/train data/lre/train_reverb
+  cp data/lre/train/vad.scp data/lre/train_reverb/
+  utils/copy_data_dir.sh --utt-suffix "-reverb" data/lre/train_reverb data/lre/train_reverb.new
+  rm -rf data/lre/train_reverb
+  mv data/lre/train_reverb.new data/lre/train_reverb
+  
+  # Prepare the MUSAN corpus, which consists of music, speech, and noise
+  # suitable for augmentation.
+  steps/data/make_musan.sh --sampling-rate 8000 $noise_data data
+  
+  # Get the duration of the MUSAN recordings.  This will be used by the
+  # script augment_data_dir.py.
+  for name in speech noise music; do
+    utils/data/get_utt2dur.sh data/musan_${name}
+    mv data/musan_${name}/utt2dur data/musan_${name}/reco2dur
+  done
+  
+  # Augment with musan_noise
+  steps/data/augment_data_dir.py --utt-suffix "noise" --fg-interval 1 --fg-snrs "15:10:5:0" --fg-noise-dir "data/musan_noise" data/lre/train data/lre/train_noise
+  # Augment with musan_music
+  steps/data/augment_data_dir.py --utt-suffix "music" --bg-snrs "15:10:8:5" --num-bg-noises "1" --bg-noise-dir "data/musan_music" data/lre/train data/lre/train_music
+  # Augment with musan_speech
+  steps/data/augment_data_dir.py --utt-suffix "babble" --bg-snrs "20:17:15:13" --num-bg-noises "3:4:5:6:7" --bg-noise-dir "data/musan_speech" data/lre/train data/lre/train_babble
+  
+  # Combine reverb, noise, music, and babble into one directory.
+  utils/combine_data.sh data/lre/train_aug data/lre/train_reverb data/lre/train_noise data/lre/train_music data/lre/train_babble
+
+  # Take a random subset of the augmentations (12k is roughly the size of the CommonVoice dataset)
+  utils/subset_data_dir.sh data/lre/train_aug 12000 data/lre/train_aug_12k
+  utils/fix_data_dir.sh data/lre/train_aug_12k
+  
+  # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
+  # from the clean version at this point, which is identical to the clean version!
+  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+    data/lre/train_aug_12k exp/make_mfcc/train_aug_12k $mfccdir
+
+  # Combine the clean and augmented SRE list.  This is now roughly
+  # double the size of the original clean list.
+  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_12k data/lre/train
+fi
+
+if [ $stage -le 5 ]; then
   # i-vector提取
   for part in train dev test; do
     # 三个目录分别为：i-vector提取器，数据目录，ivectors生成目录
     sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/$part exp/ivectors_$part
   done
+  # 提取增强后数据的i-vector
+  sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/train_combined exp/ivectors_train_combined
 fi
 
 :<<!
+echo 'Before Data Augment...\n'
 # 基于语种识别lre07的思路
-if [ $stage -le 5 ]; then
+if [ $stage -le 6 ]; then
   # 基于语种识别lre07的思路，需要根据i-vector，训练逻辑回归模型
   lid/run_logistic_regression.sh --prior-scale 0.70 --conf conf/logistic-regression.conf
   # Train error-rate: %ER 0.03
@@ -114,13 +181,17 @@ fi
 !
 
 # :<<!
+echo '\nBefore Data Augment...\n'
 # 基于说话人识别的思路
-if [ $stage -le 5 ]; then
+if [ $stage -le 6 ]; then
   # 如果基于说话人识别的思路，需要生成trials文件
   # 由于数据库中没有直接的数据来生成trials文件，需要自己组合生成
   # 这个文件是说话人识别特有的，简单来说，就是告诉系统，哪段语音是说话人X说的，哪段语音不是。
   lid/produce_trials.py data/lre/test/utt2lang $trials
-  # 余弦距离打分
+fi
+
+if [ $stage -le 7 ]; then 
+  # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
@@ -129,8 +200,8 @@ if [ $stage -le 5 ]; then
   echo '\n'
 fi
 
-if [ $stage -le 6 ]; then
-  # LDA
+if [ $stage -le 8 ]; then
+  # LDA + CDS
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
@@ -139,8 +210,8 @@ if [ $stage -le 6 ]; then
   echo '\n'
 fi
 
-if [ $stage -le 7 ]; then
-  # PLDA
+if [ $stage -le 9 ]; then
+  # LDA + PLDA
   local/plda_scoring.sh data/lre/train data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
@@ -150,4 +221,34 @@ if [ $stage -le 7 ]; then
 fi
 # !
 
+
+echo '\nAfter Data Augment...\n'
+if [ $stage -le 10 ]; then 
+  # 余弦距离打分 CDS
+  local/cosine_scoring.sh data/lre/train_combined data/lre/test \
+  exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_512_train_combined
+  # 计算EER，其中'-'表示从标准输入中读一次数据
+  awk '{print $3}' exp/scores_cosine_gmm_512_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+
+  echo '\n'
+fi
+
+if [ $stage -le 11 ]; then
+  # LDA + CDS
+  local/lda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
+  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_512_train_combined
+  # 计算EER，其中'-'表示从标准输入中读一次数据
+  awk '{print $3}' exp/scores_lda_gmm_512_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+
+  echo '\n'
+fi
+
+if [ $stage -le 12 ]; then
+  # LDA + PLDA
+  local/plda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
+  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_512_train_combined
+  # 计算EER，其中'-'表示从标准输入中读一次数据
+  awk '{print $3}' exp/scores_plda_gmm_512_train_combined/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+
+fi
 
