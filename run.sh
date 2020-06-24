@@ -26,13 +26,19 @@ vaddir=`pwd`/mfcc
 #data=/mnt/HD1/niliqiang/cv_corpus 
 # 服务器（10.103.238.161）数据集路径
 data=/mnt/DataDrive172/niliqiang/cv_corpus
-noise_data=/mnt/DataDrive172/niliqiang/musan
+musan_data=/mnt/DataDrive172/niliqiang/musan
+rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
 
 # 设置trials文件路径
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
 stage=0
+
+# 清空输出文件夹
+if [ $stage -le 0 ]; then 
+  rm -rf data exp mfcc local/lre07_cv_eval
+fi
 
 # :<<!
 if [ $stage -le 0 ]; then
@@ -100,8 +106,8 @@ if [ $stage -le 4 ]; then
   
   # Make a version with reverberated speech
   rvb_opts=()
-  rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/smallroom/rir_list")
-  rvb_opts+=(--rir-set-parameters "0.5, RIRS_NOISES/simulated_rirs/mediumroom/rir_list")
+  rvb_opts+=(--rir-set-parameters "0.5, ${rirs_data}/simulated_rirs/smallroom/rir_list")
+  rvb_opts+=(--rir-set-parameters "0.5, ${rirs_data}/simulated_rirs/mediumroom/rir_list")
 
   # Make a reverberated version of the lre.train list.  Note that we don't add any
   # additive noise here.
@@ -111,7 +117,7 @@ if [ $stage -le 4 ]; then
     --pointsource-noise-addition-probability 0 \
     --isotropic-noise-addition-probability 0 \
     --num-replications 1 \
-    --source-sampling-rate 8000 \
+    --source-sampling-rate 16000 \
     data/lre/train data/lre/train_reverb
   cp data/lre/train/vad.scp data/lre/train_reverb/
   utils/copy_data_dir.sh --utt-suffix "-reverb" data/lre/train_reverb data/lre/train_reverb.new
@@ -120,7 +126,7 @@ if [ $stage -le 4 ]; then
   
   # Prepare the MUSAN corpus, which consists of music, speech, and noise
   # suitable for augmentation.
-  steps/data/make_musan.sh --sampling-rate 8000 $noise_data data
+  steps/data/make_musan.sh --sampling-rate 16000 $musan_data data
   
   # Get the duration of the MUSAN recordings.  This will be used by the
   # script augment_data_dir.py.
@@ -181,7 +187,7 @@ fi
 !
 
 # :<<!
-echo '\nBefore Data Augment...\n'
+echo -e '\nBefore Data Augment...'
 # 基于说话人识别的思路
 if [ $stage -le 6 ]; then
   # 如果基于说话人识别的思路，需要生成trials文件
@@ -197,7 +203,7 @@ if [ $stage -le 7 ]; then
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_cosine_gmm_512/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 23.3611%, at threshold 5.10275
-  echo '\n'
+  echo ''
 fi
 
 if [ $stage -le 8 ]; then
@@ -207,7 +213,7 @@ if [ $stage -le 8 ]; then
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_lda_gmm_512/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 22.1683%, at threshold 5.84638
-  echo '\n'
+  echo ''
 fi
 
 if [ $stage -le 9 ]; then
@@ -222,7 +228,7 @@ fi
 # !
 
 
-echo '\nAfter Data Augment...\n'
+echo -e '\nAfter Data Augment...'
 if [ $stage -le 10 ]; then 
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train_combined data/lre/test \
@@ -230,7 +236,7 @@ if [ $stage -le 10 ]; then
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_cosine_gmm_512_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
 
-  echo '\n'
+  echo ''
 fi
 
 if [ $stage -le 11 ]; then
@@ -240,7 +246,7 @@ if [ $stage -le 11 ]; then
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_lda_gmm_512_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
 
-  echo '\n'
+  echo ''
 fi
 
 if [ $stage -le 12 ]; then
