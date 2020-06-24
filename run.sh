@@ -151,7 +151,7 @@ if [ $stage -le 4 ]; then
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
-  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+  steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
     data/lre/train_aug_12k exp/make_mfcc/train_aug_12k $mfccdir
 
   # Combine the clean and augmented SRE list.  This is now roughly
