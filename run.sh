@@ -183,6 +183,8 @@ if [ $stage -le 6 ]; then
   # Duration (sec):    avg
   #         ER (%):  36.63
   #      C_avg (%):  34.07
+  
+  echo ''
 fi
 !
 
@@ -202,7 +204,7 @@ if [ $stage -le 7 ]; then
   exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_512
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_cosine_gmm_512/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 23.3611%, at threshold 5.10275
+  # Equal error rate is 21.955%, at threshold 5.50439
   echo ''
 fi
 
@@ -210,9 +212,9 @@ if [ $stage -le 8 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_512
-  # 计算EER，其中'-'表示从标准输入中读一次数据
+  
   awk '{print $3}' exp/scores_lda_gmm_512/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 22.1683%, at threshold 5.84638
+  # Equal error rate is 21.4216%, at threshold 6.39489
   echo ''
 fi
 
@@ -220,10 +222,10 @@ if [ $stage -le 9 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train data/lre/train data/lre/test \
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_512
-  # 计算EER，其中'-'表示从标准输入中读一次数据
+  
   awk '{print $3}' exp/scores_plda_gmm_512/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Without i-vector mean compute: Equal error rate is 29.3057%, at threshold -170.614
-  # With i-vector mean compute: Equal error rate is 30.2269%, at threshold -206.967
+  # Equal error rate is 26.9201%, at threshold -155.518
+  echo ''
 fi
 # !
 
@@ -233,9 +235,9 @@ if [ $stage -le 10 ]; then
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_512_train_combined
-  # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_cosine_gmm_512_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
 
+  awk '{print $3}' exp/scores_cosine_gmm_512_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  # Equal error rate is 42.6687%, at threshold 16.5972
   echo ''
 fi
 
@@ -243,9 +245,9 @@ if [ $stage -le 11 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_512_train_combined
-  # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_lda_gmm_512_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
 
+  awk '{print $3}' exp/scores_lda_gmm_512_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  # Equal error rate is 22.4496%, at threshold 5.51369
   echo ''
 fi
 
@@ -253,8 +255,9 @@ if [ $stage -le 12 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_512_train_combined
-  # 计算EER，其中'-'表示从标准输入中读一次数据
+  
   awk '{print $3}' exp/scores_plda_gmm_512_train_combined/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-
+  # Equal error rate is 20.5295%, at threshold -2.05733
+  echo ''
 fi
 
