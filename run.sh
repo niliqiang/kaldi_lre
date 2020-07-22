@@ -83,8 +83,8 @@ fi
 # :<<!
 if [ $stage -le 2 ]; then
   # 使用训练集训练UBM
-  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个512的混合高斯
-  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 512 exp/diag_ubm
+  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个1024的混合高斯
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 1024 exp/diag_ubm
   # 用先训练的diag_ubm来训练完整的UBM
   sid/train_full_ubm.sh --cmd "$train_cmd" --nj 5 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
 fi
@@ -145,18 +145,18 @@ if [ $stage -le 4 ]; then
   # Combine reverb, noise, music, and babble into one directory.
   utils/combine_data.sh data/lre/train_aug data/lre/train_reverb data/lre/train_noise data/lre/train_music data/lre/train_babble
 
-  # Take a random subset of the augmentations (12k is roughly the size of the CommonVoice dataset)
-  utils/subset_data_dir.sh data/lre/train_aug 12000 data/lre/train_aug_12k
-  utils/fix_data_dir.sh data/lre/train_aug_12k
+  # Take a random subset of the augmentations (13k is roughly the size of the CommonVoice dataset)
+  utils/subset_data_dir.sh data/lre/train_aug 13000 data/lre/train_aug_13k
+  utils/fix_data_dir.sh data/lre/train_aug_13k
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
   steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    data/lre/train_aug_12k exp/make_mfcc/train_aug_12k $mfccdir
+    data/lre/train_aug_13k exp/make_mfcc/train_aug_13k $mfccdir
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.
-  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_12k data/lre/train
+  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_13k data/lre/train
 fi
 
 if [ $stage -le 5 ]; then
@@ -201,9 +201,9 @@ fi
 if [ $stage -le 7 ]; then 
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_512
+  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_1024
   # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_cosine_gmm_512/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_cosine_gmm_1024/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 21.955%, at threshold 5.50439
   echo ''
 fi
@@ -211,9 +211,9 @@ fi
 if [ $stage -le 8 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_512
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_1024
   
-  awk '{print $3}' exp/scores_lda_gmm_512/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_lda_gmm_1024/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 21.4216%, at threshold 6.39489
   echo ''
 fi
@@ -221,9 +221,9 @@ fi
 if [ $stage -le 9 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_512
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_1024
   
-  awk '{print $3}' exp/scores_plda_gmm_512/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_plda_gmm_1024/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 26.9201%, at threshold -155.518
   echo ''
 fi
@@ -234,9 +234,9 @@ echo -e '\nAfter Data Augment...'
 if [ $stage -le 10 ]; then 
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train_combined data/lre/test \
-  exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_512_train_combined
+  exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_1024_train_combined
 
-  awk '{print $3}' exp/scores_cosine_gmm_512_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_cosine_gmm_1024_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 42.6687%, at threshold 16.5972
   echo ''
 fi
@@ -244,9 +244,9 @@ fi
 if [ $stage -le 11 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
-  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_512_train_combined
+  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_1024_train_combined
 
-  awk '{print $3}' exp/scores_lda_gmm_512_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_lda_gmm_1024_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 22.4496%, at threshold 5.51369
   echo ''
 fi
@@ -254,9 +254,9 @@ fi
 if [ $stage -le 12 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
-  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_512_train_combined
+  exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_1024_train_combined
   
-  awk '{print $3}' exp/scores_plda_gmm_512_train_combined/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_plda_gmm_1024_train_combined/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is 20.5295%, at threshold -2.05733
   echo ''
 fi
