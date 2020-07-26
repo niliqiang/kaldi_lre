@@ -33,7 +33,7 @@ rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
-stage=0
+stage=4
 
 # 清空输出文件夹
 if [ $stage -le 0 ]; then 
@@ -57,9 +57,21 @@ if [ $stage -le 0 ]; then
   done
   
   # 使用修改之后的combine_data.sh，将之前准备的数据整合到一起
-  for part in train dev test; do
-    local/combine_data.sh data/lre/$part \
-      data/zh_CN/$part data/tr/$part data/it/$part data/ru/$part data/ga_IE/$part
+  # train与dev独立
+  #for part in train dev test; do
+  #  local/combine_data.sh data/lre/$part \
+  #    data/zh_CN/$part data/tr/$part data/it/$part data/ru/$part data/ga_IE/$part
+  #  utils/validate_data_dir.sh --no-text --no-feats data/lre/$part
+  #  utils/fix_data_dir.sh data/lre/$part
+  #done
+
+  # train与dev合并
+  local/combine_data.sh data/lre/train \
+    data/zh_CN/train data/tr/train data/it/train data/ru/train data/ga_IE/train \
+	data/zh_CN/dev   data/tr/dev   data/it/dev   data/ru/dev   data/ga_IE/dev
+  local/combine_data.sh data/lre/test \
+    data/zh_CN/test data/tr/test data/it/test data/ru/test data/ga_IE/test
+  for part in train test; do
     utils/validate_data_dir.sh --no-text --no-feats data/lre/$part
     utils/fix_data_dir.sh data/lre/$part
   done
@@ -67,7 +79,8 @@ fi
 
 if [ $stage -le 1 ]; then
   # 计算MFCC、进行端点检测（VAD）
-  for part in train dev test; do
+  # for part in train dev test; do
+  for part in train test; do
     # --cmd 指示：how to run jobs, run.pl或queue.pl
 	# --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
 	# 三个目录分别为：数据目录，log目录，mfcc生成目录
@@ -161,7 +174,8 @@ fi
 
 if [ $stage -le 5 ]; then
   # i-vector提取
-  for part in train dev test; do
+  # for part in train dev test; do
+  for part in train test; do
     # 三个目录分别为：i-vector提取器，数据目录，ivectors生成目录
     sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/$part exp/ivectors_$part
   done
@@ -177,7 +191,6 @@ if [ $stage -le 6 ]; then
   lid/run_logistic_regression.sh --prior-scale 0.70 --conf conf/logistic-regression.conf
   # Train error-rate: %ER 0.03
   # Test error-rate: %ER 36.63
-
   # 基于语种识别lre07的思路，计算ER和C_avg
   local/lre07_cv_eval.sh exp/ivectors_test local/general_lr_closed_set_langs.txt
   # Duration (sec):    avg
