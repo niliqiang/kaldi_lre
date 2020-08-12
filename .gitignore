@@ -1,5 +1,5 @@
 # output files
-/data/
-/exp/
-/mfcc/
-/local/lre07_cv_eval/
+/v1/data/
+/v1/exp/
+/v1/mfcc/
+/v1/local/lre07_cv_eval/
