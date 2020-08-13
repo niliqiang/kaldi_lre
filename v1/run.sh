@@ -23,17 +23,19 @@ vaddir=`pwd`/mfcc
 # Ubuntu双系统数据集路径
 #data=/dataset/cv_corpus
 # 工作站（10.112.212.188）数据集路径
-#data=/mnt/HD1/niliqiang/cv_corpus 
+data=/mnt/HD1/niliqiang/cv_corpus 
+musan_data=/mnt/HD1/niliqiang/musan
+rirs_data=/mnt/HD1/niliqiang/RIRS_NOISES
 # 服务器（10.103.238.161）数据集路径
-data=/mnt/DataDrive172/niliqiang/cv_corpus
-musan_data=/mnt/DataDrive172/niliqiang/musan
-rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
+# data=/mnt/DataDrive172/niliqiang/cv_corpus
+# musan_data=/mnt/DataDrive172/niliqiang/musan
+# rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
 
 # 设置trials文件路径
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
-stage=4
+stage=1
 
 # 清空输出文件夹
 if [ $stage -le 0 ]; then 
