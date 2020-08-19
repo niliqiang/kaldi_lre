@@ -35,7 +35,7 @@ rirs_data=/mnt/HD1/niliqiang/RIRS_NOISES
 trials=data/lre/test/trials
 
 # 指示系统的执行阶段
-stage=1
+stage=0
 
 # 清空输出文件夹
 if [ $stage -le 0 ]; then 
