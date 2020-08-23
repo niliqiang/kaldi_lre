@@ -12,7 +12,6 @@
 set -e
 
 mfccdir=`pwd`/mfcc
-vaddir=`pwd`/mfcc
 
 # 设置语料存放路径和语料URL
 # 工作站（10.112.212.188）数据集路径
@@ -21,20 +20,22 @@ lm_url=www.openslr.org/resources/11
 data=/mnt/HD1/niliqiang
 
 # 指示系统的执行阶段
-stage=0
+stage=12
 
-if [$stage -le 0 ]
+if [ $stage -le 0 ]
 then
   # download the data.
   local/download_and_untar.sh $data $data_url train-clean-100
   # download the LM resources
   local/download_lm.sh $lm_url data/local/lm
+fi
 
+if [ $stage -le 1 ]; then
   # perpare the data and use it to train NN
   local/data_prep.sh $data/LibriSpeech/train-clean-100 data/$(echo train-clean-100 | sed s/-/_/g)
 fi
 
-if [ $stage -le 1 ]; then
+if [ $stage -le 2 ]; then
   # when the "--stage 3" option is used below we skip the G2P steps, and use the
   # lexicon we have already downloaded from openslr.org/11/
   local/prepare_dict.sh --stage 3 --nj 30 --cmd "$train_cmd" \
@@ -46,7 +47,7 @@ if [ $stage -le 1 ]; then
   local/format_lms.sh --src-dir data/lang_nosp data/local/lm
 fi
 
-if [ $stage -le 2 ]; then
+if [ $stage -le 3 ]; then
   # Create ConstArpaLm format language model for full 3-gram and 4-gram LMs
   utils/build_const_arpa_lm.sh data/local/lm/lm_tglarge.arpa.gz \
     data/lang_nosp data/lang_nosp_test_tglarge
@@ -54,12 +55,12 @@ if [ $stage -le 2 ]; then
     data/lang_nosp data/lang_nosp_test_fglarge
 fi
 
-if [$stage -le 3 ]; then
+if [ $stage -le 4 ]; then
   steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 40 data/train_clean_100 exp/make_mfcc/train_clean_100 $mfccdir
   steps/compute_cmvn_stats.sh data/train_clean_100 exp/make_mfcc/train_clean_100 $mfccdir
 fi
 
-if [ $stage -le 4 ]; then
+if [ $stage -le 5 ]; then
   # Make some small data subsets for early system-build stages.  Note, there are 29k
   # utterances in the train_clean_100 directory which has 100 hours of data.
   # For the monophone stages we select the shortest utterances, which should make it
@@ -69,13 +70,13 @@ if [ $stage -le 4 ]; then
   utils/subset_data_dir.sh data/train_clean_100 10000 data/train_10k
 fi
 
-f [ $stage -le 5 ]; then
+if [ $stage -le 6 ]; then
   # train a monophone system
   steps/train_mono.sh --boost-silence 1.25 --nj 20 --cmd "$train_cmd" \
                       data/train_2kshort data/lang_nosp exp/mono
 fi
 
-if [ $stage -le 6 ]; then
+if [ $stage -le 7 ]; then
   steps/align_si.sh --boost-silence 1.25 --nj 10 --cmd "$train_cmd" \
                     data/train_5k data/lang_nosp exp/mono exp/mono_ali_5k
 
@@ -84,7 +85,7 @@ if [ $stage -le 6 ]; then
                         2000 10000 data/train_5k data/lang_nosp exp/mono_ali_5k exp/tri1
 fi
 
-if [ $stage -le 7 ]; then
+if [ $stage -le 8 ]; then
   steps/align_si.sh --nj 10 --cmd "$train_cmd" \
                     data/train_10k data/lang_nosp exp/tri1 exp/tri1_ali_10k
 
@@ -95,7 +96,7 @@ if [ $stage -le 7 ]; then
                           data/train_10k data/lang_nosp exp/tri1_ali_10k exp/tri2b
 fi
 
-if [ $stage -le 8 ]; then
+if [ $stage -le 9 ]; then
   # Align a 10k utts subset using the tri2b model
   steps/align_si.sh  --nj 10 --cmd "$train_cmd" --use-graphs true \
                      data/train_10k data/lang_nosp exp/tri2b exp/tri2b_ali_10k
@@ -105,7 +106,7 @@ if [ $stage -le 8 ]; then
                      data/train_10k data/lang_nosp exp/tri2b_ali_10k exp/tri3b
 fi
 
-if [ $stage -le 9 ]; then
+if [ $stage -le 10 ]; then
   # align the entire train_clean_100 subset using the tri3b model
   steps/align_fmllr.sh --nj 20 --cmd "$train_cmd" \
     data/train_clean_100 data/lang_nosp \
@@ -117,7 +118,7 @@ if [ $stage -le 9 ]; then
                       exp/tri3b_ali_clean_100 exp/tri4b
 fi
 
-if [ $stage -le 10 ]; then
+if [ $stage -le 11 ]; then
   # Now we compute the pronunciation and silence probabilities from training data,
   # and re-create the lang directory.
   steps/get_prons.sh --cmd "$train_cmd" \
@@ -137,9 +138,8 @@ if [ $stage -le 10 ]; then
     data/local/lm/lm_fglarge.arpa.gz data/lang data/lang_test_fglarge
 fi
 
-if [ $stage -le 11 ] && false; then
-  # This stage is for nnet2 training on 100 hours; we're commenting it out
-  # as it's deprecated.
+if [ $stage -le 12 ]; then
+  # This stage is for nnet2 training on 100 hours
   # align train_clean_100 using the tri4b model
   steps/align_fmllr.sh --nj 30 --cmd "$train_cmd" \
     data/train_clean_100 data/lang exp/tri4b exp/tri4b_ali_clean_100
