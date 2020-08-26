@@ -48,14 +48,14 @@ if [ $stage -le 0 ]; then
   for part in train dev test; do
     # 汉语(zh_CN)
     local/data_prep.pl $data/zh_CN $part data/zh_CN/$part
-	# 土耳其语(tr)
-	local/data_prep.pl $data/tr $part data/tr/$part
-	# 意大利语(it)
-	local/data_prep.pl $data/it $part data/it/$part
-	# 俄语(ru)
-	local/data_prep.pl $data/ru $part data/ru/$part
-	# 爱尔兰语(ga_IE)
-	local/data_prep.pl $data/ga_IE $part data/ga_IE/$part
+    # 土耳其语(tr)
+    local/data_prep.pl $data/tr $part data/tr/$part
+    # 意大利语(it)
+    local/data_prep.pl $data/it $part data/it/$part
+    # 俄语(ru)
+    local/data_prep.pl $data/ru $part data/ru/$part
+    # 爱尔兰语(ga_IE)
+    local/data_prep.pl $data/ga_IE $part data/ga_IE/$part
   done
   
   # 使用修改之后的combine_data.sh，将之前准备的数据整合到一起
@@ -70,7 +70,7 @@ if [ $stage -le 0 ]; then
   # train与dev合并
   local/combine_data.sh data/lre/train \
     data/zh_CN/train data/tr/train data/it/train data/ru/train data/ga_IE/train \
-	data/zh_CN/dev   data/tr/dev   data/it/dev   data/ru/dev   data/ga_IE/dev
+	  data/zh_CN/dev   data/tr/dev   data/it/dev   data/ru/dev   data/ga_IE/dev
   local/combine_data.sh data/lre/test \
     data/zh_CN/test data/tr/test data/it/test data/ru/test data/ga_IE/test
   for part in train test; do
@@ -84,12 +84,12 @@ if [ $stage -le 1 ]; then
   # for part in train dev test; do
   for part in train test; do
     # --cmd 指示：how to run jobs, run.pl或queue.pl
-	# --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
-	# 三个目录分别为：数据目录，log目录，mfcc生成目录
-    # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir
-	# make MFCC plus pitch features
-	steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
-	utils/fix_data_dir.sh data/lre/$part
+    # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
+    # 三个目录分别为：数据目录，log目录，mfcc生成目录
+      # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir
+    # make MFCC plus pitch features
+    steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    utils/fix_data_dir.sh data/lre/$part
     steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part $vaddir
     utils/fix_data_dir.sh data/lre/$part
   done
