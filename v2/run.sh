@@ -23,7 +23,6 @@ stage=0
 
 if [ $stage -le 0 ]
 then
-train_bottleneck_nnet
   # Train a NN on about 100 hours of the librispeech clean data set.
   local/train_nnet_bottleneck.sh
 fi
