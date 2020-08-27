@@ -55,6 +55,17 @@ if [ $stage -le 1 ]; then
 fi
 
 if [ $stage -le 2 ]; then
+  # 计算MFCC、CMVN
+  for part in train test; do
+    # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
+    # 三个目录分别为：数据目录，log目录，mfcc生成目录
+    # make MFCC plus pitch features
+    steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    steps/compute_cmvn_stats.sh data/lre/$part exp/make_mfcc/$part $mfccdir
+  done
+fi
+
+if [ $stage -le 3 ]; then
   # 提取BNF特征
   for part in train test; do
     steps/nnet2/dump_bottleneck_features.sh --nj 4 \
