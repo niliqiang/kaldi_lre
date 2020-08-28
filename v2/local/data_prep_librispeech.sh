@@ -21,7 +21,10 @@ fi
 
 spk_file=$src/../SPEAKERS.TXT
 
-mkdir -p $dst || exit 1;
+#如果文件夹不存在，创建文件夹
+if [ ! -d $dst ]; then
+  mkdir -p $dst || exit 1;
+fi
 
 [ ! -d $src ] && echo "$0: no such directory $src" && exit 1;
 [ ! -f $spk_file ] && echo "$0: expected file $spk_file to exist" && exit 1;

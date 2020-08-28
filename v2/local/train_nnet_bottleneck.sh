@@ -38,7 +38,7 @@ else
 fi
 
 # 指示系统的执行阶段
-stage=13
+stage=1
 
 if [ $stage -le 0 ]
 then
@@ -50,7 +50,7 @@ fi
 
 if [ $stage -le 1 ]; then
   # perpare the data and use it to train NN
-  local/data_prep.sh $data/LibriSpeech/train-clean-100 data/$(echo train-clean-100 | sed s/-/_/g)
+  local/data_prep_librispeech.sh $data/LibriSpeech/train-clean-100 data/$(echo train-clean-100 | sed s/-/_/g)
 fi
 
 if [ $stage -le 2 ]; then
@@ -74,7 +74,7 @@ if [ $stage -le 3 ]; then
 fi
 
 if [ $stage -le 4 ]; then
-  steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 40 data/train_clean_100 exp/make_mfcc/train_clean_100 $mfccdir
+  local/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 40 data/train_clean_100 exp/make_mfcc/train_clean_100 $mfccdir
   steps/compute_cmvn_stats.sh data/train_clean_100 exp/make_mfcc/train_clean_100 $mfccdir
 fi
 

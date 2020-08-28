@@ -31,15 +31,15 @@ if [ $stage -le 1 ]; then
   # 数据准备（已验证的训练集，开发集，测试集）
   for part in train dev test; do
     # 汉语(zh_CN)
-    local/data_prep.pl $data/zh_CN $part data/zh_CN/$part
+    local/data_prep_cv.pl $data/zh_CN $part data/zh_CN/$part
     # 土耳其语(tr)
-    local/data_prep.pl $data/tr $part data/tr/$part
+    local/data_prep_cv.pl $data/tr $part data/tr/$part
     # 意大利语(it)
-    local/data_prep.pl $data/it $part data/it/$part
+    local/data_prep_cv.pl $data/it $part data/it/$part
     # 俄语(ru)
-    local/data_prep.pl $data/ru $part data/ru/$part
+    local/data_prep_cv.pl $data/ru $part data/ru/$part
     # 爱尔兰语(ga_IE)
-    local/data_prep.pl $data/ga_IE $part data/ga_IE/$part
+    local/data_prep_cv.pl $data/ga_IE $part data/ga_IE/$part
   done
 
   # train与dev合并
@@ -60,7 +60,7 @@ if [ $stage -le 2 ]; then
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
     # make MFCC plus pitch features
-    steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    local/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
     steps/compute_cmvn_stats.sh data/lre/$part exp/make_mfcc/$part $mfccdir
   done
 fi
