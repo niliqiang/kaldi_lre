@@ -14,12 +14,14 @@ set -e
 # 设置语料存放路径和语料URL
 #（如需重新训练带瓶颈层的神经网络，注意local/train_bottleneck_nnet.sh中的数据路径）
 # 工作站（10.112.212.188）数据集路径
-data=/mnt/HD1/niliqiang/cv_corpus
+# data=/mnt/HD1/niliqiang/cv_corpus
+# 服务器（10.103.238.151）数据集路径
+data=/mnt/DataDrive172/niliqiang/cv_corpus
 
 mfccdir=`pwd`/mfcc
 
 # 指示系统的执行阶段
-stage=0
+stage=2
 
 if [ $stage -le 0 ]
 then
@@ -67,9 +69,11 @@ fi
 
 if [ $stage -le 3 ]; then
   # 提取BNF特征
+  [ ! -d exp/param_bnf ] && mkdir -p exp/param_bnf
   for part in train test; do
     steps/nnet2/dump_bottleneck_features.sh --nj 4 \
-      data/lre/$part data/lre/${part}_bnf exp/nnet_bottleneck_clean_100_gpu exp/param_bnf exp/dump_bnf
+      data/lre/$part data/lre/${part}_bnf exp/nnet_bottleneck_clean_100 exp/param_bnf exp/dump_bnf
+  done
 fi
 
 

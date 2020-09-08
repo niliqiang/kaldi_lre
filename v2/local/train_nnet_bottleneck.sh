@@ -8,14 +8,16 @@ set -e
 
 # 设置语料存放路径和语料URL
 # 工作站（10.112.212.188）数据集路径
-data=/mnt/HD1/niliqiang
+# data=/mnt/HD1/niliqiang
+# 服务器（10.103.238.151）数据集路径
+data=/mnt/DataDrive172/niliqiang/
 data_url=www.openslr.org/resources/12
 lm_url=www.openslr.org/resources/11
 
 mfccdir=`pwd`/mfcc
 
 train_stage=-10
-use_gpu=true
+use_gpu=false
 
 if $use_gpu; then
   if ! cuda-compiled; then
@@ -38,7 +40,7 @@ else
 fi
 
 # 指示系统的执行阶段
-stage=1
+stage=13
 
 if [ $stage -le 0 ]
 then
@@ -170,7 +172,7 @@ if [ $stage -le 13 ]; then
    --num-threads "$num_threads" --mix-up 5000 --max-change 40 \
    --initial-learning-rate 0.005 --final-learning-rate 0.0005 \
    --num-hidden-layers 7 \
-   --bottleneck-dim 64 --hidden-layer-dim 1024 \
+   --bottleneck-dim 42 --hidden-layer-dim 1024 \
     data/train_clean_100 data/lang exp/tri4b_ali_clean_100 $dir || exit 1
 fi
 
