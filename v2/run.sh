@@ -21,7 +21,7 @@ data=/mnt/DataDrive172/niliqiang/cv_corpus
 mfccdir=`pwd`/mfcc
 
 # 指示系统的执行阶段
-stage=2
+stage=4
 
 if [ $stage -le 0 ]
 then
@@ -76,6 +76,27 @@ if [ $stage -le 3 ]; then
   done
 fi
 
+if [ $stage -le 4 ]; then
+  # VAD
+  for part in train test; do
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/${part}_bnf exp/make_vad/$part $vaddir
+    utils/fix_data_dir.sh data/lre/${part}_bnf
+  done
+fi
 
+if [ $stage -le 4 ]; then
+  steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/${part}_bnf exp/make_vad/$part $vaddir
+    utils/fix_data_dir.sh data/lre/$part
+  # 使用训练集训练UBM
+  # 使用train_diag_ubm.sh脚本的speaker-id版本，BNF特征，训练一个1024的混合高斯
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train_bnf 1024 exp/diag_ubm
+  # 用先训练的diag_ubm来训练完整的UBM
+  sid/train_full_ubm.sh --cmd "$train_cmd" --nj 5 --remove-low-count-gaussians false data/lre/train_bnf exp/diag_ubm exp/full_ubm
+fi
 
+if [ $stage -le 5 ]; then
+  # 使用训练集训练i-vector提取器，实际运行的线程数是nj*num_processes*num_threads，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes（16G内存需要都降到2）
+  # 还需要注意的是数据分块数为nj*num_processes，这个数据不能超过说话人数（语种数）
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 5 --num_threads 2 --num_processes 1 --num-iters 8 exp/full_ubm/final.ubm data/lre/train_bnf exp/extractor
+fi
 
