@@ -51,14 +51,15 @@ close(WAV) || die;
 
 # =pod  # 块注释，与=cut对应
 # 生成语音和说话人/语种的对应文件
-if (system(
-  "utils/utt2spk_to_spk2utt.pl $out_dir/utt2lang >$out_dir/lang2utt") != 0) {
-  die "Error creating lang2utt file in directory $out_dir";
-}
-if (system(
-  "utils/utt2spk_to_spk2utt.pl $out_dir/utt2spk >$out_dir/spk2utt") != 0) {
-  die "Error creating spk2utt file in directory $out_dir";
-}
+# update: 在stage0数据准备的最后生成
+# if (system(
+#   "utils/utt2spk_to_spk2utt.pl $out_dir/utt2lang >$out_dir/lang2utt") != 0) {
+#   die "Error creating lang2utt file in directory $out_dir";
+# }
+# if (system(
+#   "utils/utt2spk_to_spk2utt.pl $out_dir/utt2spk >$out_dir/spk2utt") != 0) {
+#   die "Error creating spk2utt file in directory $out_dir";
+# }
 
 # 按行修正和验证
 # LC_COLLATE 定义该环境的排序和比较规则，保证文件是有序的

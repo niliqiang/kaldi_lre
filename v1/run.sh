@@ -39,7 +39,7 @@ stage=0
 
 # 清空输出文件夹
 if [ $stage -le 0 ]; then 
-  rm -rf data exp mfcc local/lre07_cv_eval
+  rm -rf data/* exp/* mfcc/*
 fi
 
 # :<<!
@@ -74,9 +74,27 @@ if [ $stage -le 0 ]; then
   local/combine_data.sh data/lre/test \
     data/zh_CN/test data/tr/test data/it/test data/ru/test data/ga_IE/test
   for part in train test; do
+    utils/data/get_utt2dur.sh data/lre/$part
+    mv data/lre/${part}/utt2dur data/lre/${part}/utt2dur.bk
+    mv data/lre/${part}/wav.scp data/lre/${part}/wav.scp.bk
+    mv data/lre/${part}/utt2spk data/lre/${part}/utt2spk.bk
+    awk '$2>=3 {print $0}' data/lre/${part}/utt2dur.bk > data/lre/${part}/utt2dur
+    awk 'NR==FNR {target[$1]=$2; next} {if($1 in target) print $0}' data/lre/${part}/utt2dur data/lre/${part}/wav.scp.bk > data/lre/${part}/wav.scp
+    awk 'NR==FNR {target[$1]=$2; next} {if($1 in target) print $0}' data/lre/${part}/utt2dur data/lre/${part}/utt2spk.bk > data/lre/${part}/utt2spk
+    utils/utt2spk_to_spk2utt.pl data/lre/${part}/utt2spk > data/lre/${part}/spk2utt
+    cp data/lre/${part}/utt2spk data/lre/${part}/utt2lang
+    cp data/lre/${part}/spk2utt data/lre/${part}/lang2utt
+
     utils/validate_data_dir.sh --no-text --no-feats data/lre/$part
     utils/fix_data_dir.sh data/lre/$part
   done
+  # 音速扰动sp
+  # 音量扰动vp
+  local/data/perturb_data_dir_speed_3way.sh data/lre/train data/lre/train_sp
+  local/data/perturb_data_dir_volume_handler.sh data/lre/train data/lre/train_vp
+  utils/combine_data.sh data/lre/train_tmp data/lre/train_sp data/lre/train_vp
+  rm -rf data/lre/train
+  mv data/lre/train_tmp data/lre/train
 fi
 
 if [ $stage -le 1 ]; then
@@ -86,7 +104,7 @@ if [ $stage -le 1 ]; then
     # --cmd 指示：how to run jobs, run.pl或queue.pl
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
-      # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir
+    # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
     # make MFCC plus pitch features
     steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
     utils/fix_data_dir.sh data/lre/$part
@@ -160,18 +178,20 @@ if [ $stage -le 4 ]; then
   # Combine reverb, noise, music, and babble into one directory.
   utils/combine_data.sh data/lre/train_aug data/lre/train_reverb data/lre/train_noise data/lre/train_music data/lre/train_babble
 
-  # Take a random subset of the augmentations (13k is roughly the size of the CommonVoice dataset)
-  utils/subset_data_dir.sh data/lre/train_aug 13000 data/lre/train_aug_13k
-  utils/fix_data_dir.sh data/lre/train_aug_13k
+  # Take a random subset of the augmentations (20k is roughly the size of the CommonVoice dataset)
+  utils/subset_data_dir.sh data/lre/train_aug 20000 data/lre/train_aug_20k
+  utils/fix_data_dir.sh data/lre/train_aug_20k
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
   steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    data/lre/train_aug_13k exp/make_mfcc/train_aug_13k $mfccdir
+    data/lre/train_aug_20k exp/make_mfcc/train_aug_20k $mfccdir
+  # steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+    # data/lre/train_aug_20k exp/make_mfcc/train_aug_20k $mfccdir
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.
-  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_13k data/lre/train
+  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_20k data/lre/train
 fi
 
 if [ $stage -le 5 ]; then
@@ -219,7 +239,7 @@ if [ $stage -le 7 ]; then
   exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_1024
   # 计算EER，其中'-'表示从标准输入中读一次数据
   awk '{print $3}' exp/scores_cosine_gmm_1024/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 21.955%, at threshold 5.50439
+  # Equal error rate is , at threshold 
   echo ''
 fi
 
@@ -229,7 +249,7 @@ if [ $stage -le 8 ]; then
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_1024
   
   awk '{print $3}' exp/scores_lda_gmm_1024/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 21.4216%, at threshold 6.39489
+  # Equal error rate is , at threshold 
   echo ''
 fi
 
@@ -239,7 +259,7 @@ if [ $stage -le 9 ]; then
   exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_1024
   
   awk '{print $3}' exp/scores_plda_gmm_1024/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 26.9201%, at threshold -155.518
+  # Equal error rate is , at threshold 
   echo ''
 fi
 # !
@@ -252,7 +272,7 @@ if [ $stage -le 10 ]; then
   exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_1024_train_combined
 
   awk '{print $3}' exp/scores_cosine_gmm_1024_train_combined/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 42.6687%, at threshold 16.5972
+  # Equal error rate is , at threshold 
   echo ''
 fi
 
@@ -262,7 +282,7 @@ if [ $stage -le 11 ]; then
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_1024_train_combined
 
   awk '{print $3}' exp/scores_lda_gmm_1024_train_combined/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 22.4496%, at threshold 5.51369
+  # Equal error rate is , at threshold 
   echo ''
 fi
 
@@ -272,7 +292,7 @@ if [ $stage -le 12 ]; then
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_1024_train_combined
   
   awk '{print $3}' exp/scores_plda_gmm_1024_train_combined/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
-  # Equal error rate is 20.5295%, at threshold -2.05733
+  # Equal error rate is , at threshold 
   echo ''
 fi
 
