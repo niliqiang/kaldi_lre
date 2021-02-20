@@ -17,6 +17,12 @@ if (@ARGV != 3) {
 # 获取语种信息
 $lang = (split("/", $db_base))[-1];
 
+# 设定过滤语音的阈值
+$threshold = 2;
+if ($lang eq "en" and $dataset eq "train") {  # 注意比较字符串不能用==
+  $threshold = 3;
+}
+
 # 依次创建文件夹
 mkdir data unless -d data;
 mkdir "data/$lang" unless -d "data/$lang";
@@ -32,9 +38,15 @@ open(WAV, ">", "$out_dir/wav.scp") or die "Could not open the output file $out_d
 readline META;    # 第一行为标头 skip the first line
 while(<META>) {
   chomp;
-  ($client_id, $path, $sentence, $up_votes, $down_votes, $age, $gender, $accent) = split(" ", $_);
+  ($client_id, $path, $sentence, $up_votes, $down_votes, $age, $gender, $accent) = split("\t", $_);
+  if ($up_votes-$down_votes < $threshold) { # 过滤评分较低的语音
+    next;
+  }
   $uttId = $path;
   $uttId =~ s/\.mp3//g;
+  if ($lang eq "es" and $dataset eq "train" and substr($uttId, -1) ne "0") {  # 过滤西班牙语，使各语言数量大致相同
+    next;
+  }
   # No speaker information is provided, so we treat each utterance as coming from a different speaker
   $spkr = $uttId;
   # sox指令要跟例程中的一致，最后的 '- |' 不能缺少
