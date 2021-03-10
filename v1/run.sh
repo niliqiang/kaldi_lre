@@ -124,11 +124,11 @@ if [ $stage -le 2 ]; then
     # --cmd 指示：how to run jobs, run.pl或queue.pl
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
-    # steps/make_mfcc.sh --cmd "$train_cmd" --nj 1 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
     # make MFCC plus pitch features
-    steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    # steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
     utils/fix_data_dir.sh data/lre/$part
-    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 1 data/lre/$part exp/make_vad/$part $vaddir
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part $vaddir
     utils/fix_data_dir.sh data/lre/$part
   done
 fi
@@ -137,9 +137,9 @@ fi
 if [ $stage -le 3 ]; then
   # 使用训练集训练UBM
   # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个1024的混合高斯
-  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 1 data/lre/train 1024 exp/diag_ubm
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 1024 exp/diag_ubm
   # 用先训练的diag_ubm来训练完整的UBM
-  sid/train_full_ubm.sh --cmd "$train_cmd" --nj 1 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
+  sid/train_full_ubm.sh --cmd "$train_cmd" --nj 5 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
 fi
 
 if [ $stage -le 3 ]; then
@@ -198,20 +198,20 @@ if [ $stage -le 4 ]; then
   # Combine reverb, noise, music, and babble into one directory.
   utils/combine_data.sh data/lre/train_aug data/lre/train_reverb data/lre/train_noise data/lre/train_music data/lre/train_babble
 
-  # Take a random subset of the augmentations (15k is roughly the size of the CommonVoice dataset)
-  utils/subset_data_dir.sh data/lre/train_aug 15000 data/lre/train_aug_15k
-  utils/fix_data_dir.sh data/lre/train_aug_15k
+  # Take a random subset of the augmentations (400k is roughly the size of the CommonVoice dataset)
+  utils/subset_data_dir.sh data/lre/train_aug 400000 data/lre/train_aug_400k
+  utils/fix_data_dir.sh data/lre/train_aug_400k
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
-  steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    data/lre/train_aug_15k exp/make_mfcc/train_aug_15k $mfccdir
-  # steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    # data/lre/train_aug_15k exp/make_mfcc/train_aug_15k $mfccdir
+  # steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+  #   data/lre/train_aug_400k exp/make_mfcc/train_aug_400k $mfccdir
+  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+    data/lre/train_aug_400k exp/make_mfcc/train_aug_400k $mfccdir
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.
-  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_15k data/lre/train
+  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_400k data/lre/train
 fi
 
 if [ $stage -le 5 ]; then
