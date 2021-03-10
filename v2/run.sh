@@ -11,23 +11,22 @@
 # set -e 代表只要出错就停止运行.
 set -e
 
-mfccdir=`pwd`/mfcc
-vaddir=`pwd`/mfcc
-
 # 设置语料存放路径和语料URL
 #（如需重新训练带瓶颈层的神经网络，注意local/train_bottleneck_nnet.sh中的数据路径）
 # 工作站（10.112.212.188）数据集路径
-# data=/mnt/HD1/niliqiang/cv_corpus
+data=/mnt/HD1/niliqiang/cv_corpus/cv-corpus-6.1-2020-12-11
+musan_data=/mnt/HD1/niliqiang/musan
+rirs_data=/mnt/HD1/niliqiang/RIRS_NOISES
 # 服务器（10.103.238.151）数据集路径
-data=/mnt/DataDrive172/niliqiang/cv_corpus
-musan_data=/mnt/DataDrive172/niliqiang/musan
-rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
+# data=/mnt/DataDrive172/niliqiang/cv_corpus
+# musan_data=/mnt/DataDrive172/niliqiang/musan
+# rirs_data=/mnt/DataDrive172/niliqiang/RIRS_NOISES
 
 # 设置trials文件路径
 trials=data/lre/test_bnf/trials
 
 # 指示系统的执行阶段
-stage=2
+stage=0
 
 if [ $stage -le 0 ]
 then
@@ -68,11 +67,11 @@ if [ $stage -le 2 ]; then
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
     # make MFCC plus pitch features
-    local/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    local/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
     utils/fix_data_dir.sh data/lre/$part
-    steps/compute_cmvn_stats.sh data/lre/$part exp/make_mfcc/$part $mfccdir
+    steps/compute_cmvn_stats.sh data/lre/$part exp/make_mfcc/$part exp/mfcc
     utils/fix_data_dir.sh data/lre/$part
-    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part $vaddir
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part exp/vad
     utils/fix_data_dir.sh data/lre/$part
   done
 fi
@@ -84,7 +83,7 @@ if [ $stage -le 3 ]; then
     steps/nnet2/dump_bottleneck_features.sh --nj 4 \
       data/lre/$part data/lre/${part}_bnf exp/nnet_bottleneck_clean_100 exp/param_bnf exp/dump_bnf
     utils/fix_data_dir.sh data/lre/${part}_bnf
-    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/${part}_bnf exp/make_vad/${part}_bnf $vaddir
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/${part}_bnf exp/make_vad/${part}_bnf exp/vad
     utils/fix_data_dir.sh data/lre/${part}_bnf
   done
 fi
@@ -159,7 +158,7 @@ if [ $stage -le 64 ]; then
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
   steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    data/lre/train_bnf_aug_13k exp/make_mfcc/train_bnf_aug_13k $mfccdir
+    data/lre/train_bnf_aug_13k exp/make_mfcc/train_bnf_aug_13k exp/mfcc
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.

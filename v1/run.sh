@@ -16,9 +16,6 @@
 # set -e 代表只要出错就停止运行.
 set -e
 
-mfccdir=`pwd`/mfcc
-vaddir=`pwd`/mfcc
-
 # 设置语料存放路径和语料URL
 # Ubuntu双系统数据集路径
 #data=/dataset/cv_corpus
@@ -39,7 +36,7 @@ stage=0
 
 # 清空输出文件夹
 if [ $stage -le 0 ]; then 
-  rm -rf data/* exp/* mfcc/*
+  rm -rf data/* exp/*
 fi
 
 # :<<!
@@ -110,11 +107,11 @@ if [ $stage -le 1 ]; then
   done
   # 音速扰动sp
   # 音量扰动vp
-  local/data/perturb_data_dir_speed_3way.sh data/lre/train data/lre/train_sp
-  local/data/perturb_data_dir_volume_handler.sh data/lre/train data/lre/train_vp
-  utils/combine_data.sh data/lre/train_tmp data/lre/train_sp data/lre/train_vp
-  rm -rf data/lre/train
-  mv data/lre/train_tmp data/lre/train
+  # local/data/perturb_data_dir_speed_3way.sh data/lre/train data/lre/train_sp
+  # local/data/perturb_data_dir_volume_handler.sh data/lre/train data/lre/train_vp
+  # utils/combine_data.sh data/lre/train_tmp data/lre/train_sp data/lre/train_vp
+  # rm -rf data/lre/train
+  # mv data/lre/train_tmp data/lre/train
 fi
 
 if [ $stage -le 2 ]; then
@@ -124,11 +121,11 @@ if [ $stage -le 2 ]; then
     # --cmd 指示：how to run jobs, run.pl或queue.pl
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
-    steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
     # make MFCC plus pitch features
-    # steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part $mfccdir || exit 1
+    # steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
     utils/fix_data_dir.sh data/lre/$part
-    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part $vaddir
+    steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part exp/vad
     utils/fix_data_dir.sh data/lre/$part
   done
 fi
@@ -198,20 +195,20 @@ if [ $stage -le 4 ]; then
   # Combine reverb, noise, music, and babble into one directory.
   utils/combine_data.sh data/lre/train_aug data/lre/train_reverb data/lre/train_noise data/lre/train_music data/lre/train_babble
 
-  # Take a random subset of the augmentations (400k is roughly the size of the CommonVoice dataset)
-  utils/subset_data_dir.sh data/lre/train_aug 400000 data/lre/train_aug_400k
-  utils/fix_data_dir.sh data/lre/train_aug_400k
+  # Take a random subset of the augmentations (100k is roughly the size of the CommonVoice dataset)
+  utils/subset_data_dir.sh data/lre/train_aug 100000 data/lre/train_aug_100k
+  utils/fix_data_dir.sh data/lre/train_aug_100k
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
   # steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-  #   data/lre/train_aug_400k exp/make_mfcc/train_aug_400k $mfccdir
+  #   data/lre/train_aug_100k exp/make_mfcc/train_aug_100k exp/mfcc
   steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-    data/lre/train_aug_400k exp/make_mfcc/train_aug_400k $mfccdir
+    data/lre/train_aug_100k exp/make_mfcc/train_aug_100k exp/mfcc
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.
-  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_400k data/lre/train
+  utils/combine_data.sh data/lre/train_combined data/lre/train_aug_100k data/lre/train
 fi
 
 if [ $stage -le 5 ]; then
