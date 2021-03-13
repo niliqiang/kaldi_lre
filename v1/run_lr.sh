@@ -30,13 +30,24 @@ if [ $stage -le 0 ]; then
   rm -rf lr_output/data/* lr_output/exp/*
 fi
 
+# 数据准备
 if [ $stage -le 1 ]; then
-  # 数据准备，去掉file_path中的日期和/
+  # 去掉file_path中的日期和/
   utt_id_with_suffix=${file_path#*/}
+  # 获取文件后缀名
+  suffix=${utt_id_with_suffix##*.}
+  # 获取语料ID
   utt_id=${utt_id_with_suffix%.*}
   echo "$utt_id language" > lr_output/data/utt2spk
   echo "language $utt_id" > lr_output/data/spk2utt
-  echo "$utt_id sox $upload_files/$file_path -t wav -r 16k -b 16 -e signed - |" > lr_output/data/wav.scp
+  if [ $suffix = "pcm" ]; then
+    echo "$utt_id sox -t raw -r 16k -b 16 -c 1 -e signed $upload_files/$file_path -t wav - |" > lr_output/data/wav.scp
+  elif [ $suffix = "mp3" || $suffix = "wav" ]; then
+    echo "$utt_id sox $upload_files/$file_path -t wav -r 16k -b 16 -c 1 -e signed - |" > lr_output/data/wav.scp
+  else
+    echo "Unsupported audio file format."
+    exit 1
+  fi
 fi
 
 if [ $stage -le 2 ]; then
@@ -73,5 +84,5 @@ fi
 
 if [ $stage -le 6 ]; then
   # 输出结果
-  awk '{if(score<$3)target=$1} END {print target}' lr_output/exp/scores/cosine_scores
+  awk '{if(score<$3){score=$3; target=$1}} END {print target}' lr_output/exp/scores/cosine_scores
 fi

@@ -121,9 +121,9 @@ if [ $stage -le 2 ]; then
     # --cmd 指示：how to run jobs, run.pl或queue.pl
     # --nj 指示：number of parallel jobs, 默认为4，需要注意的是nj不能超过说话人数（语种数），以免分割数据的时候被拒绝
     # 三个目录分别为：数据目录，log目录，mfcc生成目录
-    steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
+    # steps/make_mfcc.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
     # make MFCC plus pitch features
-    # steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
+    steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_mfcc/$part exp/mfcc || exit 1
     utils/fix_data_dir.sh data/lre/$part
     steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 5 data/lre/$part exp/make_vad/$part exp/vad
     utils/fix_data_dir.sh data/lre/$part
@@ -201,10 +201,10 @@ if [ $stage -le 4 ]; then
   
   # Make MFCCs for the augmented data.  Note that we want we should alreay have the vad.scp
   # from the clean version at this point, which is identical to the clean version!
-  # steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
-  #   data/lre/train_aug_100k exp/make_mfcc/train_aug_100k exp/mfcc
-  steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+  steps/make_mfcc_pitch.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
     data/lre/train_aug_100k exp/make_mfcc/train_aug_100k exp/mfcc
+  # steps/make_mfcc.sh --mfcc-config conf/mfcc.conf --nj 5 --cmd "$train_cmd" \
+    # data/lre/train_aug_100k exp/make_mfcc/train_aug_100k exp/mfcc
 
   # Combine the clean and augmented SRE list.  This is now roughly
   # double the size of the original clean list.
