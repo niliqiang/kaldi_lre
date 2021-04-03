@@ -42,7 +42,7 @@ if [ $stage -le 1 ]; then
   echo "language $utt_id" > lr_output/data/spk2utt
   if [ $suffix = "pcm" ]; then
     echo "$utt_id sox -t raw -r 16k -b 16 -c 1 -e signed $upload_files/$file_path -t wav - |" > lr_output/data/wav.scp
-  elif [ $suffix = "mp3" || $suffix = "wav" ]; then
+  elif [ $suffix = "mp3" ] || [ $suffix = "wav" ]; then
     echo "$utt_id sox $upload_files/$file_path -t wav -r 16k -b 16 -c 1 -e signed - |" > lr_output/data/wav.scp
   else
     echo "Unsupported audio file format."
@@ -52,9 +52,9 @@ fi
 
 if [ $stage -le 2 ]; then
   # 计算MFCC、进行端点检测（VAD）
-  steps/make_mfcc.sh --cmd "$train_cmd" --nj 1 lr_output/data lr_output/exp/make_mfcc lr_output/exp/mfcc >/dev/null
+  # steps/make_mfcc.sh --cmd "$train_cmd" --nj 1 lr_output/data lr_output/exp/make_mfcc lr_output/exp/mfcc >/dev/null
   # make MFCC plus pitch features
-  # steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 1 lr_output/data lr_output/exp/make_mfcc lr_output/exp/mfcc >/dev/null
+  steps/make_mfcc_pitch.sh --cmd "$train_cmd" --nj 1 lr_output/data lr_output/exp/make_mfcc lr_output/exp/mfcc >/dev/null
   steps/compute_vad_decision.sh --cmd "$train_cmd" --nj 1 lr_output/data lr_output/exp/make_vad lr_output/exp/vad >/dev/null
 fi
 

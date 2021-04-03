@@ -133,8 +133,8 @@ fi
 # :<<!
 if [ $stage -le 3 ]; then
   # 使用训练集训练UBM
-  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个1024的混合高斯
-  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 1024 exp/diag_ubm
+  # 使用train_diag_ubm.sh脚本的speaker-id版本，二阶动态MFCC，不是SDC，训练一个4096的混合高斯
+  sid/train_diag_ubm.sh --cmd "$train_cmd" --nj 5 data/lre/train 4096 exp/diag_ubm
   # 用先训练的diag_ubm来训练完整的UBM
   sid/train_full_ubm.sh --cmd "$train_cmd" --nj 5 --remove-low-count-gaussians false data/lre/train exp/diag_ubm exp/full_ubm
 fi
@@ -142,14 +142,14 @@ fi
 if [ $stage -le 3 ]; then
   # 使用训练集训练i-vector提取器，实际运行的线程数是nj*num_processes*num_threads，会消耗大量内存，防止程序崩溃，降低nj、num_threads、num_processes（16G内存需要都降到2）
   # 还需要注意的是数据分块数为nj*num_processes，这个数据不能超过说话人数（语种数）
-  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 5 --num_threads 2 --num_processes 1 --num-iters 8 exp/full_ubm/final.ubm data/lre/train exp/extractor
+  sid/train_ivector_extractor.sh --cmd "$train_cmd" --nj 5 --num_threads 2 --num_processes 1 --num-iters 16 exp/full_ubm/final.ubm data/lre/train exp/extractor
 fi
 # !
 
 # 数据增强
 # 加混响：混响包含了real和simulated
 # 加性噪声：加性包含人声babble，音乐背景声和真实噪声
-if [ $stage -le 4 ]; then
+if [ $stage -le -4 ]; then
   utils/data/get_utt2num_frames.sh --nj 5 --cmd "$train_cmd" data/lre/train
   frame_shift=0.01
   awk -v frame_shift=$frame_shift '{print $1, $2*frame_shift;}' data/lre/train/utt2num_frames > data/lre/train/reco2dur
@@ -219,7 +219,7 @@ if [ $stage -le 5 ]; then
     sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/$part exp/ivectors_$part
   done
   # 提取增强后数据的i-vector
-  sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/train_combined exp/ivectors_train_combined
+  # sid/extract_ivectors.sh --cmd "$train_cmd" --nj 5 exp/extractor data/lre/train_combined exp/ivectors_train_combined
 fi
 
 :<<!
@@ -253,9 +253,9 @@ fi
 if [ $stage -le 7 ]; then 
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_1024
+  exp/ivectors_train exp/ivectors_test $trials exp/scores_cosine_gmm_4096
   # 计算EER，其中'-'表示从标准输入中读一次数据
-  awk '{print $3}' exp/scores_cosine_gmm_1024/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_cosine_gmm_4096/cosine_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is , at threshold 
   echo ''
 fi
@@ -263,9 +263,9 @@ fi
 if [ $stage -le 8 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_1024
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_lda_gmm_4096
   
-  awk '{print $3}' exp/scores_lda_gmm_1024/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_lda_gmm_4096/lda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is , at threshold 
   echo ''
 fi
@@ -273,9 +273,9 @@ fi
 if [ $stage -le 9 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train data/lre/train data/lre/test \
-  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_1024
+  exp/ivectors_train exp/ivectors_train exp/ivectors_test $trials exp/scores_plda_gmm_4096
   
-  awk '{print $3}' exp/scores_plda_gmm_1024/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
+  awk '{print $3}' exp/scores_plda_gmm_4096/plda_scores | paste - $trials | awk '{print $1, $4}' | compute-eer -
   # Equal error rate is , at threshold 
   echo ''
 fi
@@ -283,7 +283,7 @@ fi
 
 
 echo -e '\nAfter Data Augment...'
-if [ $stage -le 10 ]; then 
+if [ $stage -le -10 ]; then 
   # 余弦距离打分 CDS
   local/cosine_scoring.sh data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_cosine_gmm_1024_train_combined
@@ -293,7 +293,7 @@ if [ $stage -le 10 ]; then
   echo ''
 fi
 
-if [ $stage -le 11 ]; then
+if [ $stage -le -11 ]; then
   # LDA + CDS
   local/lda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_lda_gmm_1024_train_combined
@@ -303,7 +303,7 @@ if [ $stage -le 11 ]; then
   echo ''
 fi
 
-if [ $stage -le 12 ]; then
+if [ $stage -le -12 ]; then
   # LDA + PLDA
   local/plda_scoring.sh data/lre/train_combined data/lre/train_combined data/lre/test \
   exp/ivectors_train_combined exp/ivectors_train_combined exp/ivectors_test $trials exp/scores_plda_gmm_1024_train_combined
